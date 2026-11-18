@@ -22,7 +22,7 @@ div[data-testid="stMetric"] {background:#f8f6f2;padding:14px;border-radius:12px}
 """, unsafe_allow_html=True)
 
 HF_MODELS = ["Qwen/Qwen3-VL-8B-Instruct", "Qwen/Qwen3-VL-30B-A3B-Instruct"]
-GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
+GEMINI_MODELS = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
 READ_PROMPT = """
 Bạn CHỈ sao chép chữ và tên sao trong 12 ô lá số Tử Vi tiếng Việt.
 Không suy luận sao không nhìn rõ, không luận đoán. Trả về duy nhất JSON:
@@ -74,8 +74,39 @@ def friendly_error(exc):
         return ("Tài khoản/khóa AI chưa được cấp quyền hoặc dịch vụ không hỗ trợ "
                 "khu vực này. Kiểm tra thiết lập trên trang quản lý API.")
     if "404" in text or "NOT_FOUND" in text:
-        return "Mô hình không khả dụng với tài khoản này. Hãy chọn mô hình khác."
+        return ("Mô hình không khả dụng với dự án/khóa API này (404). "
+                "Google đã hạn chế Gemini 2.5 với một số dự án mới. "
+                "Hãy chọn Gemini 3.5 Flash-Lite hoặc nhấn nút "
+                "'Tự kiểm tra và chọn mô hình hoạt động'.")
     return "Dịch vụ AI chưa xử lý được yêu cầu. Hãy thử lại hoặc kiểm tra khóa và hạn mức."
+
+
+def probe_gemini_models():
+    """Thử một câu văn bản rất ngắn để xác minh quyền gọi API thực tế.
+    models.list có thể hiển thị model nhưng generateContent vẫn bị 404.
+    """
+    from google import genai
+    from google.genai import types
+    key = token()
+    if not key:
+        raise ValueError("Chưa điền Google AI Studio API Key.")
+    client = genai.Client(api_key=key)
+    failures = []
+    for candidate in GEMINI_MODELS[:3]:
+        try:
+            reply = client.models.generate_content(
+                model=candidate,
+                contents="Trả lời đúng một từ: OK",
+                config=types.GenerateContentConfig(
+                    max_output_tokens=48, temperature=0
+                )
+            )
+            if reply.text:
+                return candidate, failures
+            failures.append(candidate + ": không có nội dung phản hồi")
+        except Exception as error:
+            failures.append(candidate + ": " + friendly_error(error))
+    return None, failures
 
 
 def infer(model, messages, maximum=4500):
@@ -199,10 +230,29 @@ with st.sidebar:
     )
     if provider == "gemini":
         st.text_input("Google AI Studio API Key", type="password", key="typed_gemini")
-        model = st.selectbox("Mô hình đọc ảnh", GEMINI_MODELS)
+        model = st.selectbox("Mô hình đọc ảnh", GEMINI_MODELS, key="gemini_choice")
         st.markdown("[Lấy khóa API trên Google AI Studio](https://aistudio.google.com/app/apikey)")
-        st.caption("Gemini 2.5 Flash có hạn mức miễn phí tùy tài khoản/khu vực. "
-                   "Có giới hạn số lượt; không bảo đảm luôn miễn phí hoặc sẵn dùng.")
+        st.caption("Google hạn chế Gemini 2.5 với một số tài khoản mới. "
+                   "Bản V1.2 ưu tiên Gemini 3.5 Flash-Lite; dịch vụ có giới hạn lượt và "
+                   "có thể tính phí tùy tài khoản.")
+        if st.button("🔎 Tự kiểm tra và chọn mô hình hoạt động", use_container_width=True):
+            try:
+                with st.spinner("Đang kiểm tra một yêu cầu văn bản rất ngắn..."):
+                    working, failures = probe_gemini_models()
+                if working:
+                    st.session_state.working_model = working
+                    st.success("AI kết nối thành công với " + working)
+                else:
+                    st.session_state.pop("working_model", None)
+                    st.error("Chưa tìm thấy mô hình hoạt động với khóa này.")
+                    with st.expander("Các lỗi phát hiện"):
+                        for f in failures:
+                            st.write("• " + f)
+            except Exception as exc:
+                st.error("Chưa kiểm tra được: " + str(exc))
+        if st.session_state.get("working_model"):
+            model = st.session_state.working_model
+            st.success("Đang dùng mô hình đã kiểm tra: " + model)
         st.caption("Lưu ý: dữ liệu dùng ở gói miễn phí có thể được nhà cung cấp "
                    "sử dụng để cải thiện dịch vụ theo điều khoản của họ.")
     else:
