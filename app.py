@@ -21,7 +21,8 @@ div[data-testid="stMetric"] {background:#f8f6f2;padding:14px;border-radius:12px}
 </style>
 """, unsafe_allow_html=True)
 
-MODELS = ["Qwen/Qwen3-VL-8B-Instruct", "Qwen/Qwen3-VL-30B-A3B-Instruct"]
+HF_MODELS = ["Qwen/Qwen3-VL-8B-Instruct", "Qwen/Qwen3-VL-30B-A3B-Instruct"]
+GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
 READ_PROMPT = """
 Bạn CHỈ sao chép chữ và tên sao trong 12 ô lá số Tử Vi tiếng Việt.
 Không suy luận sao không nhìn rõ, không luận đoán. Trả về duy nhất JSON:
@@ -43,24 +44,93 @@ Không coi kết quả là chẩn đoán y khoa hay dự báo chắc chắn.
 """
 
 def token():
+    """Chỉ đọc khóa từ phiên làm việc hoặc Streamlit Secrets; không ghi vào GitHub."""
+    provider = st.session_state.get("ai_provider", "gemini")
+    if provider == "gemini":
+        typed, secret_name = "typed_gemini", "GEMINI_API_KEY"
+    else:
+        typed, secret_name = "typed_token", "HF_TOKEN"
     try:
-        secret = st.secrets.get("HF_TOKEN", "")
+        secret = st.secrets.get(secret_name, "")
     except Exception:
         secret = ""
-    return st.session_state.get("typed_token", "") or secret
+    return str(st.session_state.get(typed, "") or secret).strip()
+
+
+def friendly_error(exc):
+    """Thông báo dễ hiểu thay cho tracebacks HTTP có thể chứa dữ liệu truy vấn."""
+    text = str(exc)
+    code = getattr(exc, "status_code", None)
+    if code == 402 or "402" in text or "Payment Required" in text:
+        return ("Hugging Face yêu cầu mua tín dụng để tiếp tục (HTTP 402). "
+                "Hãy chọn 'Google Gemini' ở thanh bên trái để thử hạn mức miễn phí, "
+                "hoặc nạp tín dụng nếu muốn tiếp tục dùng Hugging Face.")
+    if code == 429 or "429" in text or "RESOURCE_EXHAUSTED" in text:
+        return ("Dịch vụ AI đã chạm giới hạn lượt hoặc hạn mức. "
+                "Hãy kiểm tra mục Usage/Rate limits của nhà cung cấp.")
+    if code == 401 or "401" in text or "API_KEY_INVALID" in text:
+        return "Khóa API không hợp lệ. Hãy tạo lại khóa của đúng nhà cung cấp."
+    if code == 403 or "403" in text or "PERMISSION_DENIED" in text:
+        return ("Tài khoản/khóa AI chưa được cấp quyền hoặc dịch vụ không hỗ trợ "
+                "khu vực này. Kiểm tra thiết lập trên trang quản lý API.")
+    if "404" in text or "NOT_FOUND" in text:
+        return "Mô hình không khả dụng với tài khoản này. Hãy chọn mô hình khác."
+    return "Dịch vụ AI chưa xử lý được yêu cầu. Hãy thử lại hoặc kiểm tra khóa và hạn mức."
+
 
 def infer(model, messages, maximum=4500):
-    from huggingface_hub import InferenceClient
-    if not token():
-        raise ValueError("Chưa có Hugging Face Token. Lá số mẫu vẫn dùng được không cần token.")
-    client = InferenceClient(token=token(), provider="auto", timeout=160)
-    result = client.chat.completions.create(
-        model=model, messages=messages, temperature=0.1, max_tokens=maximum
-    )
-    answer = result.choices[0].message.content
-    if isinstance(answer, str):
-        return answer
-    return "\n".join(x.get("text", "") for x in answer if isinstance(x, dict))
+    key = token()
+    if not key:
+        provider = st.session_state.get("ai_provider", "gemini")
+        name = "Google AI Studio API Key" if provider == "gemini" else "Hugging Face Token"
+        raise ValueError("Chưa có " + name + ". Các lá số mẫu vẫn tra cứu được không cần AI.")
+    provider = st.session_state.get("ai_provider", "gemini")
+    try:
+        if provider == "gemini":
+            from google import genai
+            from google.genai import types
+            contents = []
+            for message in messages:
+                content = message.get("content", "")
+                if isinstance(content, str):
+                    contents.append(content)
+                elif isinstance(content, list):
+                    for part in content:
+                        if part.get("type") == "text":
+                            contents.append(part.get("text", ""))
+                        elif part.get("type") == "image_url":
+                            data_url = part.get("image_url", {}).get("url", "")
+                            if not data_url.startswith("data:image/") or "," not in data_url:
+                                raise ValueError("Dữ liệu ảnh không đúng định dạng.")
+                            image_bytes = base64.b64decode(data_url.split(",", 1)[1])
+                            contents.append(Image.open(io.BytesIO(image_bytes)).convert("RGB"))
+            client = genai.Client(api_key=key)
+            response = client.models.generate_content(
+                model=model, contents=contents,
+                config=types.GenerateContentConfig(
+                    temperature=0.1, max_output_tokens=maximum
+                )
+            )
+            answer = response.text
+            if not answer:
+                raise RuntimeError("Gemini trả về nội dung rỗng.")
+            return answer
+        from huggingface_hub import InferenceClient
+        client = InferenceClient(token=key, provider="auto", timeout=160)
+        result = client.chat.completions.create(
+            model=model, messages=messages, temperature=0.1, max_tokens=maximum
+        )
+        answer = result.choices[0].message.content
+        if isinstance(answer, str):
+            return answer
+        return "\n".join(x.get("text", "") for x in answer if isinstance(x, dict))
+    except (ValueError, RuntimeError) as exc:
+        if isinstance(exc, ValueError) and ("Chưa có" in str(exc) or "Dữ liệu ảnh" in str(exc)):
+            raise
+        raise RuntimeError(friendly_error(exc)) from None
+    except Exception as exc:
+        raise RuntimeError(friendly_error(exc)) from None
+
 
 def image_data(image):
     img = image.convert("RGB")
@@ -120,14 +190,28 @@ def list_rules(items):
                        " | Trang/mục: " + item.get("page", "—"))
 
 with st.sidebar:
-    st.subheader("Cấu hình AI tùy chọn")
-    st.text_input("Hugging Face Token", type="password", key="typed_token")
-    model = st.selectbox("Mô hình thị giác", MODELS)
-    st.markdown("[Đăng ký Hugging Face](https://huggingface.co/join) · "
-                "[Tạo token](https://huggingface.co/settings/tokens)")
-    st.caption("Khi dùng AI, ảnh được gửi đến dịch vụ trực tuyến. "
-               "Có thể bị giới hạn lượt hoặc tính phí.")
-    st.caption("Không lưu token trong GitHub. Không tải ảnh chứa thông tin nhạy cảm nếu chưa đồng ý.")
+    st.subheader("Kết nối AI đọc lá số")
+    provider = st.selectbox(
+        "Dịch vụ AI", ["gemini", "huggingface"],
+        format_func=lambda p: "Google Gemini (có hạn mức miễn phí)" if p == "gemini"
+                               else "Hugging Face (có thể yêu cầu tín dụng)",
+        key="ai_provider"
+    )
+    if provider == "gemini":
+        st.text_input("Google AI Studio API Key", type="password", key="typed_gemini")
+        model = st.selectbox("Mô hình đọc ảnh", GEMINI_MODELS)
+        st.markdown("[Lấy khóa API trên Google AI Studio](https://aistudio.google.com/app/apikey)")
+        st.caption("Gemini 2.5 Flash có hạn mức miễn phí tùy tài khoản/khu vực. "
+                   "Có giới hạn số lượt; không bảo đảm luôn miễn phí hoặc sẵn dùng.")
+        st.caption("Lưu ý: dữ liệu dùng ở gói miễn phí có thể được nhà cung cấp "
+                   "sử dụng để cải thiện dịch vụ theo điều khoản của họ.")
+    else:
+        st.text_input("Hugging Face Token", type="password", key="typed_token")
+        model = st.selectbox("Mô hình thị giác", HF_MODELS)
+        st.markdown("[Hugging Face Tokens](https://huggingface.co/settings/tokens)")
+        st.caption("Hugging Face có thể trả HTTP 402 nếu yêu cầu nạp tín dụng.")
+    st.info("Ảnh được chuyển đến dịch vụ AI bạn chọn khi nhấn nút đọc ảnh. "
+            "Không đăng API Key lên GitHub hoặc chia sẻ công khai.")
 
 if "chart" not in st.session_state:
     st.session_state.chart = sample("giapty")
