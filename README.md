@@ -9,7 +9,7 @@ Website Streamlit tiếng Việt để kiểm nghiệm phương pháp luận T�
 - Luận Tật gốc, Ách gốc, tính cách qua Mệnh–Tật, Tật–Ách đại vận.
 - 21 quy tắc thử nghiệm kèm điều kiện sao và nguồn tham khảo.
 - Báo cáo tải về TXT.
-- **Tùy chọn:** AI nhận dạng ảnh lá số và AI viết bài luận qua Hugging Face. Cần token riêng, nhà cung cấp hỗ trợ mô hình và kiểm tra dữ liệu sau nhận dạng.
+- **Tùy chọn:** AI nhận dạng ảnh và viết bài luận qua Google Gemini (có hạn mức miễn phí tùy tài khoản/khu vực) hoặc Hugging Face (có thể yêu cầu nạp tín dụng). Cần API Key tương ứng và kiểm tra dữ liệu sau nhận dạng.
 
 ## Triển khai website
 
@@ -23,7 +23,7 @@ Sau khi Streamlit triển khai thành công, nền tảng sẽ cung cấp URL we
 
 ## Quyền riêng tư
 
-Không đưa token vào GitHub. Token đặt tại Secrets của Streamlit. Khi dùng AI, ảnh sẽ được xử lý bởi dịch vụ bên ngoài; khi chỉ xem lá số mẫu và chạy quy tắc không cần token.
+Không đưa token vào GitHub. Token đặt tại Secrets của Streamlit. Khi dùng AI, ảnh được gửi đến nhà cung cấp bạn chọn; khi chỉ dùng lá số mẫu và bộ quy tắc thì không cần khóa. Google Gemini Free Tier có thể sử dụng dữ liệu để cải thiện dịch vụ theo chính sách của Google. Không đăng khóa công khai.
 
 ## Tình trạng
 
