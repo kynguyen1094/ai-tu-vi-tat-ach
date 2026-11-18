@@ -2,6 +2,16 @@
 
 Website Streamlit tiếng Việt để kiểm nghiệm phương pháp luận Tử Vi truyền thống.
 
+## Bản nâng cấp V2 – Luận nền tảng (18/11/2026)
+
+- Có phần luận Tật gốc cho **14 chính tinh**, dựa trên bảng sao–tạng phủ của tài liệu “Cung Tật Ách: Bản chất, bệnh lý và các yếu tố liên quan”.
+- Bổ sung luận phụ tinh có nguồn trong “Các cách chỉ bệnh tật trong Tử Vi”; nguồn này được ưu tiên khi phân tích bệnh lý.
+- Phân biệt **Mệnh – biểu hiện bên ngoài** với **Tật – nội tâm**; với sao chưa có mô tả tâm tính trực tiếp trong tài liệu, ứng dụng sẽ báo chưa đủ căn cứ thay vì tự tạo diễn giải.
+- Cung Tật đại vận được luận qua chính tinh và sao tại cung, rồi phối hợp các cách cục riêng.
+- Nếu chưa khớp cách cục đặc biệt, **phần luận nền tảng vẫn hiển thị**. Với các cách bệnh, nội dung phản ánh phân loại trong cổ thư, không xác nhận bệnh thực tế.
+- Kiểm thử bổ sung riêng lá số có **Thiên Tướng (Đ), Đại Hao (H), Tuần** ở Tật.
+- Ứng dụng không tự xác định toàn bộ sự kiện hạn, cũng chưa có ấn bản đầy đủ các bộ Ách từ sách Bùi Quang Nhuận.
+
 ## Chức năng
 
 - Hai lá số nghiên cứu mẫu và bảng nhập/chỉnh sửa sao tại 12 cung.
