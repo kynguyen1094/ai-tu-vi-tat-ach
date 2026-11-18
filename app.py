@@ -413,7 +413,10 @@ with tab2:
     b.subheader("Tật – nội tâm tiềm ẩn")
     b.write(", ".join(chart["houses"][chart["tat"]]) or "Chưa nhập sao")
     st.caption("Theo tài liệu B, Mệnh là bề nổi còn Tật phản ánh tính cách bề chìm. "
-               "Bản V2 không tự suy ra nét tâm lý từ sao chưa được tài liệu giải thích.")
+               "Mô tả sao tại Mệnh là phép vận dụng có chú thích, không phải kết luận tâm lý.")
+    st.markdown("**Nhận xét về Mệnh (bên ngoài)**")
+    baseline_cards(foundation["visible_nature"])
+    st.markdown("**Nhận xét về Tật (nội tâm)**")
     baseline_cards(foundation["nature"])
     st.subheader("Các bộ sao chuyên biệt về tính cách")
     list_rules([x for x in result["groups"]["Tật"] if x["group"] == "tâm tính"])
