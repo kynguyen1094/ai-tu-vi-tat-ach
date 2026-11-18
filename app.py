@@ -11,6 +11,7 @@ from PIL import Image
 
 from engine import CHI, analyze, labels_for, relation_table, tat_dai_van, text_report, validate
 from seed import CHARTS, RULES
+from interpretation import baseline, baseline_report
 
 st.set_page_config(page_title="AI Tử Vi · Tật – Ách", page_icon="☯️", layout="wide")
 st.markdown("""
@@ -211,7 +212,7 @@ def sample(key):
 
 def list_rules(items):
     if not items:
-        st.info("Chưa có cách nào đủ điều kiện trong 21 quy tắc thử nghiệm.")
+        st.info("Chưa có **cách cục chuyên biệt** khớp đủ điều kiện trong thư viện thử nghiệm. Phần luận nền tảng vẫn có ở phía trên.")
     for item in items:
         with st.expander(item["title"] + " · " + item.get("group", item["kind"])):
             st.write(item["result"])
@@ -270,7 +271,7 @@ if "chart" not in st.session_state:
 
 st.title("☯️ AI TỬ VI · CHUYÊN ĐỀ TẬT – ÁCH")
 st.write("Luận Tật gốc, Ách gốc, tính cách Mệnh–Tật và Tật–Ách đại vận.")
-st.caption("Bản nghiên cứu V1 · Có thể sử dụng lá số mẫu mà không cần kết nối AI")
+st.caption("Bản nghiên cứu V2 · Luận nền tảng 14 chính tinh + cách cục chuyên biệt · Không cần kết nối AI cho lá số mẫu")
 
 st.header("① Chọn lá số hoặc tải ảnh")
 left, right = st.columns([1, 1])
@@ -370,6 +371,7 @@ if submitted:
 
 chart = st.session_state.chart
 result = analyze(chart, RULES)
+foundation = baseline(chart)
 metrics = st.columns(4)
 for col, (label, value) in zip(metrics, [
     ("Mệnh gốc", chart["menh"]), ("Tật gốc", chart["tat"]),
@@ -377,25 +379,54 @@ for col, (label, value) in zip(metrics, [
 ]):
     col.metric(label, value)
 
+def baseline_cards(items, empty_text="Chưa có mô tả nền tảng tương ứng trong tài liệu đang dùng."):
+    if not items:
+        st.caption(empty_text)
+    for item in items:
+        st.markdown("**" + item["title"] + "** — " + item["text"])
+        st.caption("Nguồn: " + item["source"] + " · " + item["section"])
+
+
 st.header("③ Xem luận giải và cách cục")
+st.caption("Bản V2: diễn giải nền tảng ngay cả khi chưa khớp một cách cục đặc biệt. "
+           "Các luận điểm đều có chỉ dẫn nguồn; không tự đặt tên bệnh hoặc suy luận vượt nguồn.")
+
 tab1, tab2, tab3, tab4 = st.tabs([
     "Tật – Ách gốc", "Tính cách", "Tật – Ách đại vận", "Căn cứ và nguồn"
 ])
 with tab1:
-    st.subheader("I. Tật gốc – bệnh lý theo hệ sao")
+    st.subheader("I. Tật gốc – luận nền tảng")
+    st.write("Tật gốc tại **" + foundation["tat"] + "**: " + ", ".join(foundation["tat_stars"]))
+    baseline_cards(foundation["tat_body"])
+    baseline_cards(foundation["tat_health"], empty_text="")
+    baseline_cards(foundation["tat_modifiers"], empty_text="")
+    st.subheader("Các cách chỉ bệnh chuyên biệt")
     list_rules([x for x in result["groups"]["Tật"] if x["group"] != "tâm tính"])
     st.subheader("II. Ách gốc – tai họa, thương tích và kiện tụng")
+    baseline_cards(foundation["tat_ach"],
+                   "Không có bộ sao Ách trực tiếp trong lớp nền tảng; vẫn cần xét cách cục chuyên biệt.")
     list_rules(result["groups"]["Ách"])
 with tab2:
     a, b = st.columns(2)
     a.subheader("Mệnh – biểu hiện bên ngoài")
     a.write(", ".join(chart["houses"][chart["menh"]]) or "Chưa nhập sao")
-    b.subheader("Tật – nội tâm")
+    b.subheader("Tật – nội tâm tiềm ẩn")
     b.write(", ".join(chart["houses"][chart["tat"]]) or "Chưa nhập sao")
+    st.caption("Theo tài liệu B, Mệnh là bề nổi còn Tật phản ánh tính cách bề chìm. "
+               "Bản V2 không tự suy ra nét tâm lý từ sao chưa được tài liệu giải thích.")
+    baseline_cards(foundation["nature"])
+    st.subheader("Các bộ sao chuyên biệt về tính cách")
     list_rules([x for x in result["groups"]["Tật"] if x["group"] == "tâm tính"])
 with tab3:
-    st.subheader("Mệnh đại vận " + chart["dv"] +
+    st.subheader("IV. Mệnh đại vận " + chart["dv"] +
                  " · Tật đại vận " + result["tat_dv"])
+    st.write("Mệnh đại vận: " + ", ".join(foundation["dv_stars"]))
+    st.write("Tật đại vận: " + ", ".join(foundation["dv_tat_stars"]))
+    baseline_cards(foundation["dv_body"])
+    baseline_cards(foundation["dv_health"], empty_text="")
+    baseline_cards(foundation["dv_ach"], empty_text="")
+    baseline_cards(foundation["dv_modifiers"], empty_text="")
+    st.subheader("Các cách Tật–Ách đại vận")
     list_rules(result["groups"]["Tật đại vận"])
     st.subheader("Giáp cung và nhị hợp")
     list_rules(result["groups"]["Đối chiếu mở rộng"])
@@ -410,7 +441,7 @@ with tab4:
     } for x in result["matches"]], hide_index=True, use_container_width=True)
 
 st.subheader("📄 Báo cáo")
-report = text_report(chart, result)
+report = baseline_report(chart) + "\n\n" + text_report(chart, result)
 with st.expander("Báo cáo theo quy tắc (không cần token)", expanded=True):
     st.text_area("Bản phân tích", report, height=270)
     st.download_button("⬇️ Tải báo cáo TXT", report.encode("utf-8-sig"),
@@ -419,7 +450,7 @@ if st.button("🧠 AI viết bài luận đầy đủ"):
     try:
         payload = {"menh": chart["menh"], "tat": chart["tat"],
                    "dv": chart["dv"], "tat_dv": result["tat_dv"],
-                   "houses": chart["houses"], "matched_rules": result["matches"]}
+                   "houses": chart["houses"], "source_grounded_baseline": foundation, "matched_rules": result["matches"]}
         with st.spinner("AI đang viết bài theo căn cứ đã kiểm tra..."):
             st.session_state.written = infer(model, [
                 {"role": "system", "content": WRITE_PROMPT},
