@@ -23,7 +23,7 @@ class BaselineTests(unittest.TestCase):
     def test_new_chart_thien_tuong_with_hao_tuan(self):
         new = {
             "person": "Lá số thử V2",
-            "menh": "Mão", "tat": "Tuất", "dv": "Dậu",
+            "menh": "Mão", "tat": "Tuất", "dv": "Thân",
             "houses": {x: [] for x in CHI}
         }
         new["houses"]["Mão"] = ["Thiên Đồng (H)", "Thanh Long", "Long Trì"]
