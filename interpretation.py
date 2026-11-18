@@ -114,6 +114,20 @@ def nature_notes(chart, tat):
                     "source": SOURCE_B, "section": "1.2. Mệnh, Tật Ách và hạn vận"})
     return out
 
+def visible_nature_notes(chart):
+    """Vận dụng phân biệt Mệnh–Tật của B; phép suy ra bề nổi phải ghi rõ."""
+    names = stars_present(chart, chart["menh"])
+    result = []
+    for star, meaning in NATURE_B.items():
+        if normalize(star) in names and meaning:
+            result.append({"title": star, "text": "Vận dụng ý nghĩa của sao vào lớp biểu hiện Mệnh (phép suy luận theo phương pháp Mệnh–Tật, không phải kết luận tâm lý chắc chắn): " + meaning,
+                           "source": SOURCE_B, "section": "Phần 1.1, 2 và bảng tính cách"})
+    if not result:
+        result.append({"title": "Cung Mệnh", "text": "Xem các sao Mệnh để đối chiếu với Tật; các sao tại đây chưa có mô tả tính cách tương ứng trong bảng nguồn B hoặc thiếu điều kiện.",
+                       "source": SOURCE_B, "section": "Mệnh bề nổi, Tật bề chìm"})
+    return result
+
+
 def baseline(chart):
     tat = chart["tat"]
     dv_tat = tat_dai_van(chart["dv"])
@@ -130,6 +144,7 @@ def baseline(chart):
         "tat_ach": [x for x in tat_notes if x["type"] == "Ách"],
         "tat_modifiers": [x for x in tat_notes if x["type"] == "gia giảm"],
         "nature": nature_notes(chart, tat),
+        "visible_nature": visible_nature_notes(chart),
         "dv_body": [x for x in dv_notes if x["type"] == "tạng phủ"],
         "dv_health": [x for x in dv_notes if x["type"] == "Tật"],
         "dv_ach": [x for x in dv_notes if x["type"] == "Ách"],
@@ -158,8 +173,10 @@ def baseline_report(chart):
     lines += ["III. TÍNH CÁCH QUA MỆNH – TẬT",
               "Mệnh tại " + chart["menh"] + ": " + ", ".join(b["menh_stars"]),
               "Tật tại " + b["tat"] + ": " + ", ".join(b["tat_stars"])]
+    for item in b["visible_nature"]:
+        lines.append("- Mệnh – " + item["title"] + ": " + item["text"])
     for item in b["nature"]:
-        lines.append("- " + item["title"] + ": " + item["text"])
+        lines.append("- Tật – " + item["title"] + ": " + item["text"])
     lines += ["IV. ĐẠI VẬN",
               "Mệnh đại vận tại " + chart["dv"] + ": " + ", ".join(b["dv_stars"]),
               "Tật đại vận tại " + b["dv_tat"] + ": " + ", ".join(b["dv_tat_stars"])]
