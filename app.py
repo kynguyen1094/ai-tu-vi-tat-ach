@@ -12,7 +12,7 @@ from PIL import Image
 from engine import CHI, analyze, labels_for, relation_table, tat_dai_van, text_report, validate
 from seed import CHARTS, RULES
 from interpretation import baseline, baseline_report
-from deep_reading import build_context, deterministic_report, FORMULAS
+from deep_reading import build_context, deterministic_report, FORMULAS, LEGAL_FORMULAS
 
 st.set_page_config(page_title="AI Tử Vi · Tật – Ách", page_icon="☯️", layout="wide")
 st.markdown("""
@@ -65,7 +65,7 @@ so sánh các dấu hiệu gốc và vận, xét sao trợ lực và giới hạ
 ## VI. Bảng tổng kết
 Tật gốc, Ách gốc, Mệnh–Tật, Tật đại vận, Ách đại vận, gia giảm.
 Nêu 2–4 trọng tâm có căn cứ, không gán xác suất hoặc độ nặng thực tế.
-Dẫn tên nguồn A/B và mục/bảng của dữ liệu được cấp ngay tại đoạn liên quan.
+Dẫn nguồn A/B theo mục/bảng; nguồn C chỉ dẫn đúng trang in đã cung cấp ở từng cách. Không suy ra cá nhân phạm tội hay sẽ gặp tai họa.
 Nếu thiếu dữ liệu, ghi rõ thiếu ở đâu; không thay thế bằng lời khẳng định.
 """
 
@@ -448,7 +448,7 @@ if st.session_state.get("written"):
 st.subheader("Báo cáo căn cứ tự động (không cần API Key)")
 st.caption("Nguồn A được ưu tiên; các tổ hợp đủ thành phần chưa mặc nhiên đủ điều kiện thành cách. "
            "Báo cáo này là bảng chứng cứ có cấu trúc để kiểm tra và dùng khi dịch vụ AI gặp lỗi.")
-parts = re.split(r"(?m)^## (?=I{1,3}\\.|IV\\.|V\\.)", report)
+parts = re.split(r"(?m)^## (?=I{1,3}\.|IV\.|V\.)", report)
 if len(parts) > 1:
     st.markdown(parts[0])
     for p in parts[1:]:
@@ -466,11 +466,17 @@ with st.expander("Bảng quan hệ 4 cung trọng tâm"):
         st.dataframe([{"Quan hệ":e["relation"],"Cung":e["chi"],
                        "Nhãn":e["house"],"Sao":", ".join(e["stars"])}
                       for e in layers[k]["evidence"]],hide_index=True,use_container_width=True)
-with st.expander("Kho công thức nguồn A"):
+with st.expander("Kho công thức nguồn A và C"):
     st.caption("Các tổ hợp tra cứu được mã hóa. Điều kiện hội cụ thể cần đối chiếu nguồn.")
     st.dataframe([{"Mã":ident,"Loại":kind,"Nhóm":group,"Bộ sao":" – ".join(stars),
                    "Ý nghĩa tra cứu":meaning,"Mục":sec}
                    for ident,kind,group,stars,meaning,sec in FORMULAS],
+                  hide_index=True,use_container_width=True)
+
+    st.markdown("**Nguồn C — 5 công thức đồng cung đã đối chiếu trang in 625–626**")
+    st.dataframe([{"Mã":ident,"Bộ sao":" – ".join(stars),"Vị trí yêu cầu":", ".join(allowed) or "Cùng cung",
+                   "Chủ đề cổ thư":meaning,"Trang in":page}
+                   for ident,stars,allowed,meaning,page in LEGAL_FORMULAS],
                   hide_index=True,use_container_width=True)
 
 st.divider()
