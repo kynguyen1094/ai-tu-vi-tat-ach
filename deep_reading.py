@@ -75,7 +75,7 @@ FORMULAS = [
  ("A01","Tật","tiêu hóa",["Thiên Đồng","Hóa Kỵ"],"Tổ hợp tiêu hóa và Hóa Kỵ", "1"),
  ("A02","Tật","tiêu hóa",["Vũ Khúc","Thất Sát"],"Tổ hợp tiêu hóa được A liệt kê", "1"),
  ("A03","Tật","tiêu hóa",["Thiên Riêu","Đà La","Hóa Kỵ"],"Nhóm dạ dày, ruột", "1"),
- ("A04","Tật","tiêu hóa",["Địa Không","Địa Kiếp","Bệnh Phù","Thiên Cơ"],"Nhóm mật; cần kiểm nguyên nghĩa sao Bệnh trong nguồn", "1"),
+ ("A04","Tật","tiêu hóa",["Địa Không","Địa Kiếp","Bệnh","Thiên Cơ"],"Nhóm mật; sao Bệnh không đồng nhất với Bệnh Phù", "1"),
  ("A05","Tật","tiêu hóa",["Địa Không","Địa Kiếp","Hỷ Thần"],"Nhóm hậu môn", "1"),
  ("A06","Tật","tiêu hóa",["Tham Lang","Đà La"],"Tượng ăn uống quá độ", "1"),
  ("A07","Tật","hô hấp",["Tang Môn","Bạch Hổ","Thiên Khốc","Thiên Hư"],"Nhóm hô hấp trong cổ thư", "2"),
