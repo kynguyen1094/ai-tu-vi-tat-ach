@@ -12,6 +12,7 @@ from PIL import Image
 from engine import CHI, analyze, labels_for, relation_table, tat_dai_van, text_report, validate
 from seed import CHARTS, RULES
 from interpretation import baseline, baseline_report
+from deep_reading import build_context, deterministic_report, FORMULAS
 
 st.set_page_config(page_title="AI Tử Vi · Tật – Ách", page_icon="☯️", layout="wide")
 st.markdown("""
@@ -35,14 +36,39 @@ nếu đọc rõ, nếu không rõ để null. Mỗi houses có các tên sao đ
 giữ ký hiệu (M),(V),(Đ),(H) và Tuần/Triệt. Không tự điền sao dựa vào quy tắc.
 """
 WRITE_PROMPT = """
-Viết bài Tử Vi cổ truyền CHỈ từ JSON sao đã được duyệt và các quy tắc khớp.
-Không tự thêm sao, đoán cách cục, bịa trang sách hoặc biến giáp/nhị hợp thành đồng cung.
-Bố cục: I. Tật gốc (bệnh lý); II. Ách gốc (tai họa, pháp lý);
-III. Tính cách qua Mệnh và Tật; IV. Mệnh đại vận, Tật–Ách đại vận;
-V. Kết luận và các yếu tố giải. Với mỗi nhận định phải chỉ rõ bộ sao
-và quan hệ đã khớp. Những cách chưa đủ không được khẳng định.
-Không coi kết quả là chẩn đoán y khoa hay dự báo chắc chắn.
+Bạn là trợ lý biên tập chuyên đề Tật – Ách trong Tử Vi Đẩu Số.
+Viết bằng tiếng Việt, theo bố cục bài mẫu nghiên cứu, rõ ràng, mạch lạc,
+khoảng 1500–2400 từ nếu dữ liệu đủ. Không kéo dài bằng cách lặp lại sao.
+CHỈ dùng dữ liệu lá số đã xác nhận và căn cứ trong JSON; không tự thêm sao,
+không suy luận triệu chứng, bệnh thực tế, hành vi phạm pháp, tai nạn hoặc tâm lý
+chắc chắn. Không chẩn đoán, không xếp nguy cơ y khoa hoặc pháp lý.
+Tôn trọng nguồn A ưu tiên hơn B về bệnh lý, và giữ nguyên vị trí địa chi,
+miếu/vượng/đắc/hãm. Không coi sao lưu, phi hóa là sao nguyên cục.
+Các công thức đủ thành phần là ứng viên tra cứu, không khẳng định thành cách
+nếu kiểu phối, vị trí hoặc điều kiện chưa xác nhận. Không bịa tác giả/trang.
+Giáp, nhị hợp là lớp đối chiếu bổ sung. Vô chính diệu phải phân tích chính tinh
+xung chiếu và tam hợp theo đúng vị trí, không chuyển chúng thành tọa thủ.
+Bố cục bắt buộc:
+## I. Xác định hệ thống Tật – Ách
+Bảng Mệnh gốc, Tật gốc, Mệnh đại vận, Tật đại vận. Bảng quan hệ cung Tật gốc.
+## II. Tật nguyên cục
+Luận các nhóm tượng bệnh lý có căn cứ; phân biệt tượng sao với cách bệnh.
+## III. Ách nguyên cục
+Cách cục cổ về tai nạn, thương tích, khẩu thiệt/quan tụng khi có căn cứ;
+nêu điều kiện còn thiếu và sao gia giảm. Không kết luận một cá nhân phạm tội.
+## IV. Tính cách Mệnh – Tật
+Bề ngoài, bề chìm và đối chiếu; nét tâm tính chỉ là diễn giải truyền thống.
+Nêu rõ ý trực tiếp từ nguồn B và ý vận dụng bổ trợ, không gán tính xấu như sự thật.
+## V. Tật – Ách đại vận 10 năm
+Luận riêng Mệnh đại vận và Tật đại vận; bảng quan hệ Tật đại vận;
+so sánh các dấu hiệu gốc và vận, xét sao trợ lực và giới hạn dữ liệu.
+## VI. Bảng tổng kết
+Tật gốc, Ách gốc, Mệnh–Tật, Tật đại vận, Ách đại vận, gia giảm.
+Nêu 2–4 trọng tâm có căn cứ, không gán xác suất hoặc độ nặng thực tế.
+Dẫn tên nguồn A/B và mục/bảng của dữ liệu được cấp ngay tại đoạn liên quan.
+Nếu thiếu dữ liệu, ghi rõ thiếu ở đâu; không thay thế bằng lời khẳng định.
 """
+
 
 def token():
     """Chỉ đọc khóa từ phiên làm việc hoặc Streamlit Secrets; không ghi vào GitHub."""
@@ -271,7 +297,7 @@ if "chart" not in st.session_state:
 
 st.title("☯️ AI TỬ VI · CHUYÊN ĐỀ TẬT – ÁCH")
 st.write("Luận Tật gốc, Ách gốc, tính cách Mệnh–Tật và Tật–Ách đại vận.")
-st.caption("Bản nghiên cứu V2 · Luận nền tảng 14 chính tinh + cách cục chuyên biệt · Không cần kết nối AI cho lá số mẫu")
+st.caption("V3 · Luận chuyên sâu theo bài mẫu · Tật gốc, Mệnh–Tật, đại vận · Có báo cáo không cần AI")
 
 st.header("① Chọn lá số hoặc tải ảnh")
 left, right = st.columns([1, 1])
@@ -294,7 +320,7 @@ with right:
     else:
         st.info("Chọn lá số mẫu để tra cứu ngay, hoặc tải ảnh để AI đọc.")
 
-if upload and st.button("✨ AI đọc 12 cung", type="primary"):
+if st.button("✨ AI đọc 12 cung", type="primary", disabled=not bool(upload), use_container_width=True):
     try:
         with st.spinner("Đang nhận dạng chữ và sao..."):
             messages = [{"role": "user", "content": [
@@ -306,6 +332,7 @@ if upload and st.button("✨ AI đọc 12 cung", type="primary"):
             st.session_state.draft = clean_image_result(
                 parse_json(infer(model, messages, 5500))
             )
+            st.session_state.pop("written", None)
     except Exception as exc:
         st.error("Chưa thể đọc ảnh: " + str(exc))
 
@@ -336,6 +363,7 @@ if st.session_state.get("draft"):
             st.session_state.chart = d
             st.session_state.revision += 1
             st.session_state.pop("draft")
+            st.session_state.pop("written", None)
             st.rerun()
 
 st.divider()
@@ -370,102 +398,80 @@ if submitted:
     st.success("Đã lưu trong phiên làm việc.")
 
 chart = st.session_state.chart
-result = analyze(chart, RULES)
-foundation = baseline(chart)
+st.header("③ Báo cáo Tật – Ách chuyên sâu (V3)")
+try:
+    context = build_context(chart)
+except ValueError as exc:
+    st.warning(str(exc))
+    st.stop()
+
+layers = context["layers"]
 metrics = st.columns(4)
-for col, (label, value) in zip(metrics, [
-    ("Mệnh gốc", chart["menh"]), ("Tật gốc", chart["tat"]),
-    ("Mệnh đại vận", chart["dv"]), ("Tật đại vận", result["tat_dv"])
+for col, (label, key) in zip(metrics, [
+    ("Mệnh gốc", "menh"), ("Tật gốc", "tat"),
+    ("Mệnh đại vận", "dv"), ("Tật đại vận", "dvtat")
 ]):
-    col.metric(label, value)
+    col.metric(label, layers[key]["anchor"])
 
-def baseline_cards(items, empty_text="Chưa có mô tả nền tảng tương ứng trong tài liệu đang dùng."):
-    if not items:
-        st.caption(empty_text)
-    for item in items:
-        st.markdown("**" + item["title"] + "** — " + item["text"])
-        st.caption("Nguồn: " + item["source"] + " · " + item["section"])
+if context["empty_houses"]:
+    st.warning("Còn cung trống: " + ", ".join(context["empty_houses"]) +
+               ". Có thể AI đọc thiếu. Kiểm tra ảnh trước khi luận.")
+if context["omitted_non_original"]:
+    st.caption("Sao L./LN./P./ĐV. được tách khỏi dữ liệu dùng để luận nguyên cục và đại vận.")
 
-
-st.header("③ Xem luận giải và cách cục")
-st.caption("Bản V2: diễn giải nền tảng ngay cả khi chưa khớp một cách cục đặc biệt. "
-           "Các luận điểm đều có chỉ dẫn nguồn; không tự đặt tên bệnh hoặc suy luận vượt nguồn.")
-
-tab1, tab2, tab3, tab4 = st.tabs([
-    "Tật – Ách gốc", "Tính cách", "Tật – Ách đại vận", "Căn cứ và nguồn"
-])
-with tab1:
-    st.subheader("I. Tật gốc – luận nền tảng")
-    st.write("Tật gốc tại **" + foundation["tat"] + "**: " + ", ".join(foundation["tat_stars"]))
-    baseline_cards(foundation["tat_body"])
-    baseline_cards(foundation["tat_health"], empty_text="")
-    baseline_cards(foundation["tat_modifiers"], empty_text="")
-    st.subheader("Các cách chỉ bệnh chuyên biệt")
-    list_rules([x for x in result["groups"]["Tật"] if x["group"] != "tâm tính"])
-    st.subheader("II. Ách gốc – tai họa, thương tích và kiện tụng")
-    baseline_cards(foundation["tat_ach"],
-                   "Không có bộ sao Ách trực tiếp trong lớp nền tảng; vẫn cần xét cách cục chuyên biệt.")
-    list_rules(result["groups"]["Ách"])
-with tab2:
-    a, b = st.columns(2)
-    a.subheader("Mệnh – biểu hiện bên ngoài")
-    a.write(", ".join(chart["houses"][chart["menh"]]) or "Chưa nhập sao")
-    b.subheader("Tật – nội tâm tiềm ẩn")
-    b.write(", ".join(chart["houses"][chart["tat"]]) or "Chưa nhập sao")
-    st.caption("Theo tài liệu B, Mệnh là bề nổi còn Tật phản ánh tính cách bề chìm. "
-               "Mô tả sao tại Mệnh là phép vận dụng có chú thích, không phải kết luận tâm lý.")
-    st.markdown("**Nhận xét về Mệnh (bên ngoài)**")
-    baseline_cards(foundation["visible_nature"])
-    st.markdown("**Nhận xét về Tật (nội tâm)**")
-    baseline_cards(foundation["nature"])
-    st.subheader("Các bộ sao chuyên biệt về tính cách")
-    list_rules([x for x in result["groups"]["Tật"] if x["group"] == "tâm tính"])
-with tab3:
-    st.subheader("IV. Mệnh đại vận " + chart["dv"] +
-                 " · Tật đại vận " + result["tat_dv"])
-    st.write("Mệnh đại vận: " + ", ".join(foundation["dv_stars"]))
-    st.write("Tật đại vận: " + ", ".join(foundation["dv_tat_stars"]))
-    baseline_cards(foundation["dv_body"])
-    baseline_cards(foundation["dv_health"], empty_text="")
-    baseline_cards(foundation["dv_ach"], empty_text="")
-    baseline_cards(foundation["dv_modifiers"], empty_text="")
-    st.subheader("Các cách Tật–Ách đại vận")
-    list_rules(result["groups"]["Tật đại vận"])
-    st.subheader("Giáp cung và nhị hợp")
-    list_rules(result["groups"]["Đối chiếu mở rộng"])
-    st.dataframe(relation_table(chart, result["tat_dv"]),
-                 use_container_width=True, hide_index=True)
-with tab4:
-    st.write(f"Đã khớp **{len(result['matches'])}/{len(RULES)}** quy tắc.")
-    st.dataframe([{
-        "Mã": x["id"], "Cách cục": x["title"], "Loại": x["kind"],
-        "Bộ sao": "; ".join(x["details"]),
-        "Nguồn": x["source"], "Trang/mục": x["page"]
-    } for x in result["matches"]], hide_index=True, use_container_width=True)
-
-st.subheader("📄 Báo cáo")
-report = baseline_report(chart) + "\n\n" + text_report(chart, result)
-with st.expander("Báo cáo theo quy tắc (không cần token)", expanded=True):
-    st.text_area("Bản phân tích", report, height=270)
-    st.download_button("⬇️ Tải báo cáo TXT", report.encode("utf-8-sig"),
-                       "Bao_cao_Tat_Ach.txt", "text/plain")
-if st.button("🧠 AI viết bài luận đầy đủ"):
+report = deterministic_report(context)
+can_write = not bool(context["empty_houses"])
+st.markdown("**Bài luận chuyên sâu bằng AI:** tổng hợp theo đúng sáu phần của bài mẫu, "
+            "không chỉ liệt kê sao. Hãy kiểm tra đủ 12 cung trước khi nhấn.")
+if st.button("🧠 Tạo bài luận chuyên sâu (V3)", type="primary",
+             use_container_width=True, disabled=not can_write):
+    st.session_state.pop("written", None)
     try:
-        payload = {"menh": chart["menh"], "tat": chart["tat"],
-                   "dv": chart["dv"], "tat_dv": result["tat_dv"],
-                   "houses": chart["houses"], "source_grounded_baseline": foundation, "matched_rules": result["matches"]}
-        with st.spinner("AI đang viết bài theo căn cứ đã kiểm tra..."):
+        payload = {"menh": chart["menh"], "tat": chart["tat"], "dv": chart["dv"],
+                   "dvAge": chart.get("dvAge",""), "context": context}
+        with st.spinner("AI đang tổng hợp căn cứ của nguyên cục và đại vận..."):
             st.session_state.written = infer(model, [
-                {"role": "system", "content": WRITE_PROMPT},
-                {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}
-            ])
+                {"role":"system","content":WRITE_PROMPT},
+                {"role":"user","content":json.dumps(payload,ensure_ascii=False)}
+            ], maximum=7500 if st.session_state.get("ai_provider")=="gemini" else 4096)
     except Exception as exc:
         st.error("Chưa tạo được bài luận AI: " + str(exc))
+
 if st.session_state.get("written"):
+    st.subheader("Bài luận tổng hợp bằng AI")
+    st.caption("Diễn giải từ bảng căn cứ. Cần đối chiếu lại các sao, quan hệ và nguồn; không phải chẩn đoán.")
     st.markdown(st.session_state.written)
-    st.download_button("⬇️ Tải bài luận AI",
+    st.download_button("⬇️ Lưu bài luận AI (.txt)",
                        st.session_state.written.encode("utf-8-sig"),
-                       "Luan_giai_Tat_Ach_AI.txt", "text/plain")
+                       "Luan_giai_Tat_Ach_V3.txt","text/plain")
+
+st.subheader("Báo cáo căn cứ tự động (không cần API Key)")
+st.caption("Nguồn A được ưu tiên; các tổ hợp đủ thành phần chưa mặc nhiên đủ điều kiện thành cách. "
+           "Báo cáo này là bảng chứng cứ có cấu trúc để kiểm tra và dùng khi dịch vụ AI gặp lỗi.")
+parts = re.split(r"(?m)^## (?=I{1,3}\\.|IV\\.|V\\.)", report)
+if len(parts) > 1:
+    st.markdown(parts[0])
+    for p in parts[1:]:
+        heading, _, rest = p.partition("\n")
+        with st.expander(heading.strip(), expanded=False):
+            st.markdown(rest)
+else:
+    st.markdown(report)
+st.download_button("⬇️ Lưu báo cáo căn cứ (.txt)", report.encode("utf-8-sig"),
+                   "Bao_cao_can_cu_Tat_Ach_V3.txt","text/plain")
+
+with st.expander("Bảng quan hệ 4 cung trọng tâm"):
+    for k, title in [("menh","Mệnh gốc"),("tat","Tật gốc"),("dv","Mệnh đại vận"),("dvtat","Tật đại vận")]:
+        st.markdown("**"+title+" — "+layers[k]["anchor"]+"**")
+        st.dataframe([{"Quan hệ":e["relation"],"Cung":e["chi"],
+                       "Nhãn":e["house"],"Sao":", ".join(e["stars"])}
+                      for e in layers[k]["evidence"]],hide_index=True,use_container_width=True)
+with st.expander("Kho công thức nguồn A"):
+    st.caption("Các tổ hợp tra cứu được mã hóa. Điều kiện hội cụ thể cần đối chiếu nguồn.")
+    st.dataframe([{"Mã":ident,"Loại":kind,"Nhóm":group,"Bộ sao":" – ".join(stars),
+                   "Ý nghĩa tra cứu":meaning,"Mục":sec}
+                   for ident,kind,group,stars,meaning,sec in FORMULAS],
+                  hide_index=True,use_container_width=True)
 
 st.divider()
 st.header("④ Tra cứu tài liệu")
