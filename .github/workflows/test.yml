@@ -8,5 +8,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m unittest -v test_engine_web test_interpretation
-      - run: python -m compileall -q app.py engine.py seed.py interpretation.py
+      - run: python -m unittest -v test_engine_web test_interpretation test_deep_reading
+      - run: python -m compileall -q app.py engine.py seed.py interpretation.py deep_reading.py
