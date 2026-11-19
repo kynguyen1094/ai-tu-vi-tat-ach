@@ -99,6 +99,30 @@ FORMULAS = [
  ("A25","Ách","dao kéo",["Thiên Hình","Kiếp Sát"],"Hai sao liên hệ mổ xẻ; cần bộ sao chỉ bệnh hoặc thương tích đi kèm", "1"),
  ("A26","Tật","hô hấp",["Địa Không","Địa Kiếp"],"Nhóm cách hô hấp, cần đối chiếu các sao chỉ bệnh", "2"),
 ]
+# C: kiểm tra trực tiếp trang in 625–626; chỉ chọn những cách có điều kiện đồng cung rõ.
+C = "C — Tử Vi Vựng Tập Bình Chú, Bùi Quang Nhuận"
+LEGAL_FORMULAS = [
+ ("C01", ["Đường Phù","Bạch Hổ"], [], "Quan tụng", "625"),
+ ("C02", ["Thiên Hình","Hóa Kỵ"], ["Hợi","Tý"], "Nhóm hình pháp", "625"),
+ ("C03", ["Kình Dương","Thái Tuế"], [], "Quan tụng, hình pháp", "626"),
+ ("C04", ["Liêm Trinh","Tham Lang"], [], "Nhóm hình pháp theo cổ thư", "626"),
+ ("C05", ["Phá Quân","Địa Không","Địa Kiếp"], [], "Nhóm hình pháp theo cổ thư", "626"),
+]
+def legal_formulas_at(ev):
+    result=[]
+    for ident,stars,allowed,meaning,page in LEGAL_FORMULAS:
+        for e in ev:
+            if allowed and e["chi"] not in allowed:
+                continue
+            if not {nstar(s) for s in stars}.issubset({nstar(s) for s in e["stars"]}):
+                continue
+            result.append(dict(id=ident,kind="Ách",group="quan tụng (tư liệu cổ)",meaning=meaning,
+                source=C+" · trang in "+page,
+                evidence=positions([e],stars),
+                status="Đủ điều kiện đồng cung"+(" tại "+e["chi"] if allowed else "")+
+                       " ở cung "+e["relation"]+"; chỉ đối chiếu văn bản cổ, không suy ra phạm tội hoặc hình tù thực tế"))
+    return result
+
 # Bổ trợ theo mục tính cách của B; các sao chưa có nghĩa riêng không gán bừa.
 EXTRA_NATURE = {
  "Phong Cáo":"Khuynh hướng coi trọng danh vị, thích hư vinh.",
@@ -129,7 +153,7 @@ def formulas_at(ev):
             status="Đủ thành phần cùng cung (cần đối chiếu điều kiện cổ thư)" if common else
                    "Đủ thành phần trong tam phương tứ chính, chưa xác nhận kiểu phối" if core else
                    "Đối chiếu mở rộng giáp/nhị hợp, không phải cách đồng cung"))
-    return result
+    return result + legal_formulas_at(ev)
 
 def groups_at(ev):
     rows=[]; used=set()
