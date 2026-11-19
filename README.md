@@ -2,6 +2,17 @@
 
 Website Streamlit tiếng Việt để kiểm nghiệm phương pháp luận Tử Vi truyền thống.
 
+## V3 — Báo cáo chuyên sâu
+
+- Bốn tâm điểm: Mệnh gốc, Tật gốc, Mệnh đại vận, Tật đại vận; xét đúng tọa thủ, xung chiếu, tam hợp, giáp và nhị hợp.
+- Luận Tật vô chính diệu có xét sao xung/tam hợp; không coi là sao tọa thủ.
+- 26 tổ hợp tra cứu nguồn A; 5 công thức đồng cung nguồn C (trang in 625–626). Kiểm tra đủ thành phần khác với xác nhận điều kiện thành cách.
+- Tách tiền tố lưu tinh/phi hóa và giữ Lưu Hà nguyên cục.
+- Nút **Tạo bài luận chuyên sâu (V3)** dùng AI viết sáu phần. Báo cáo căn cứ tự động không cần API Key.
+- Nguồn A ưu tiên hơn B, bao gồm Long Trì–mũi, Phượng Các–tai, Nhật/Nguyệt–mắt và Thiên Đồng–tiêu hóa.
+- Nếu vị trí Mệnh/Tật không hợp thứ tự 12 cung, hoặc còn cung trống, cần kiểm tra dữ liệu. Không tự khẳng định bệnh, tính cách, hành vi phạm tội hoặc biến cố thực tế.
+- Kho nguồn C và các nhóm Ách chuyên biệt vẫn chưa đầy đủ; V3 chỉ là bản nâng cấp thử nghiệm. AI trực tuyến vẫn có giới hạn/quyền truy cập theo dịch vụ.
+
 ## Bản nâng cấp V2 – Luận nền tảng (18/11/2026)
 
 - Có phần luận Tật gốc cho **14 chính tinh**, dựa trên bảng sao–tạng phủ của tài liệu “Cung Tật Ách: Bản chất, bệnh lý và các yếu tố liên quan”.
